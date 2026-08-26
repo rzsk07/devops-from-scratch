@@ -1,0 +1,856 @@
+Gateway API Hands-On Lab with Envoy Gateway
+
+                    CLIENT / CURL
+                         |
+                         |
+                  NodePort / Port Forward
+                         |
+                         v
+                 +---------------+
+                 |    Gateway    |
+                 | eg-demo-gw    |
+                 +-------+-------+
+                         |
+                    HTTPRoute
+                  /              \
+                 /                \
+        Host Routing             Path Routing
+       app.local             api.local
+            |                    |
+            |              /api /health
+            |
+            v                    v
+      demo-web-service      demo-api-service
+            |                    |
+            v                    v
+        NGINX Pods          API Pods
+
+
+
+
+
+#STEP 0 — Check Your Kubernetes Cluster
+kubectl version
+kubectl get nodes
+
+#Make sure your nodes are Ready:
+kubectl get nodes
+
+#Expected:
+
+#NAME      STATUS   ROLES           AGE
+#master    Ready    control-plane   ...
+#worker1   Ready    <none>          ...
+#STEP 1 — Install Gateway API CRDs
+
+#You can directly install the Standard Gateway API CRDs:
+
+kubectl apply --server-side \
+  -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/standard-install.yaml
+
+#The Standard channel includes stable and beta Gateway API resources such as GatewayClass, Gateway, HTTPRoute, and ReferenceGrant.
+
+#Verify:
+
+kubectl get crd | grep gateway.networking.k8s.io
+
+# You should see resources similar to:
+
+# gatewayclasses.gateway.networking.k8s.io
+# gateways.gateway.networking.k8s.io
+# httproutes.gateway.networking.k8s.io
+# referencegrants.gateway.networking.k8s.io
+
+# Check API resources:
+
+kubectl api-resources | grep gateway
+
+# STEP 2 — Install Envoy Gateway
+
+# For a hands-on lab, Helm is the recommended installation approach because it gives better configuration control than manually applying an old static manifest.
+
+# If Helm is not installed:
+
+helm version
+
+# Install Envoy Gateway:
+
+helm install eg \
+  oci://docker.io/envoyproxy/gateway-helm \
+  --version v1.9.0 \
+  -n envoy-gateway-system \
+  --create-namespace
+
+# Wait for the controller:
+
+kubectl wait \
+  --timeout=5m \
+  -n envoy-gateway-system \
+  deployment/envoy-gateway \
+  --for=condition=Available
+
+# Verify:
+
+kubectl get pods -n envoy-gateway-system
+
+# Expected:
+
+# NAME                             READY   STATUS    RESTARTS
+# envoy-gateway-xxxxxxxxxx-xxxxx   1/1     Running   0
+
+# The official Envoy Gateway examples use this installation model and a GatewayClass managed by the Envoy Gateway controller.
+
+# STEP 3 — Create GatewayClass
+
+# Create the file:
+
+vi 01-gatewayclass.yaml
+
+# Paste:
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: eg-demo
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+
+# Apply:
+
+kubectl apply -f 01-gatewayclass.yaml
+
+# Verify:
+
+kubectl get gatewayclass
+
+# Expected:
+
+# NAME      CONTROLLER
+# eg-demo   gateway.envoyproxy.io/gatewayclass-controller
+
+# Check detailed status:
+
+kubectl describe gatewayclass eg-demo
+
+# You want:
+
+# Accepted=True
+# STEP 4 — Create Demo Namespace
+
+vi 02-namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-demo
+
+# Apply:
+
+kubectl apply -f 02-namespace.yaml
+
+# Verify:
+
+kubectl get ns gateway-demo
+
+#STEP 5 — Create Web Application
+
+# First create the ConfigMap.
+
+# This fixes one of the problems in your original deployment order.
+
+vi 03-web-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-html
+  namespace: gateway-demo
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Gateway API Web</title>
+    </head>
+
+    <body>
+      <h1>Gateway API Host Routing Works!</h1>
+      <h2>Application: WEB</h2>
+
+      <p id="host"></p>
+      <p id="path"></p>
+
+      <script>
+        document.getElementById("host").innerHTML =
+          "Host: " + window.location.host;
+
+        document.getElementById("path").innerHTML =
+          "Path: " + window.location.pathname;
+      </script>
+    </body>
+    </html>
+
+# Apply:
+
+kubectl apply -f 03-web-configmap.yaml
+
+#STEP 6 — Create Web Deployment
+
+vi 04-web-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: gateway-demo
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: web
+
+  template:
+    metadata:
+      labels:
+        app: web
+
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:stable-alpine
+
+          ports:
+            - containerPort: 80
+
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+
+      volumes:
+        - name: html
+          configMap:
+            name: web-html
+
+#Apply:
+
+kubectl apply -f 04-web-deployment.yaml
+
+#Wait:
+
+kubectl rollout status deployment/web -n gateway-demo
+
+@Check:
+
+kubectl get pods -n gateway-demo
+
+#STEP 7 — Create Web Service
+
+vi 05-web-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+  namespace: gateway-demo
+
+spec:
+  selector:
+    app: web
+
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+
+#Apply:
+
+kubectl apply -f 05-web-service.yaml
+
+#Verify:
+
+kubectl get svc -n gateway-demo
+
+#Test from inside the cluster:
+
+kubectl run curl-test \
+  --rm \
+  -it \
+  --image=curlimages/curl \
+  -n gateway-demo \
+  -- \
+  curl web-service
+
+# You should receive:
+
+# Gateway API Host Routing Works!
+
+# STEP 8 — Create API Application
+
+# Now create another application so we can practice path routing.
+
+vi 06-api-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-html
+  namespace: gateway-demo
+
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+      <title>Gateway API API</title>
+    </head>
+
+    <body>
+      <h1>Gateway API Path Routing Works!</h1>
+      <h2>Application: API</h2>
+    </body>
+
+    </html>
+
+#Apply:
+
+kubectl apply -f 06-api-configmap.yaml
+
+#STEP 9 — Create API Deployment
+
+vi 07-api-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: gateway-demo
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: api
+
+  template:
+    metadata:
+      labels:
+        app: api
+
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:stable-alpine
+
+          ports:
+            - containerPort: 80
+
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+
+      volumes:
+        - name: html
+          configMap:
+            name: api-html
+
+# Apply:
+
+kubectl apply -f 07-api-deployment.yaml
+
+Wait:
+
+kubectl rollout status deployment/api -n gateway-demo
+
+#STEP 10 — Create API Service
+
+vi 08-api-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+  namespace: gateway-demo
+
+spec:
+  selector:
+    app: api
+
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+
+Apply:
+
+kubectl apply -f 08-api-service.yaml
+
+Verify:
+
+kubectl get svc -n gateway-demo
+
+#STEP 11 — Create Gateway
+
+#This is the entry point into our cluster applications.
+
+vi 09-gateway.yaml
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+
+metadata:
+  name: eg-demo-gateway
+  namespace: gateway-demo
+
+spec:
+  gatewayClassName: eg-demo
+
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+
+      allowedRoutes:
+        namespaces:
+          from: Same
+
+#Apply:
+
+kubectl apply -f 09-gateway.yaml
+
+#Check:
+
+kubectl get gateway -n gateway-demo
+
+#Detailed status:
+
+kubectl describe gateway eg-demo-gateway -n gateway-demo
+
+#You want to eventually see:
+
+Programmed=True
+
+#Check the listener:
+
+kubectl get gateway eg-demo-gateway \
+  -n gateway-demo \
+  -o yaml
+
+#STEP 12 — Create Host-Based HTTPRoute
+
+Now:
+
+Host: web.gateway.local
+        |
+        v
+   web-service
+
+Create:
+
+vi 10-web-route.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+
+metadata:
+  name: web-route
+  namespace: gateway-demo
+
+spec:
+
+  parentRefs:
+    - name: eg-demo-gateway
+
+  hostnames:
+    - "web.gateway.local"
+
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+
+      backendRefs:
+        - name: web-service
+          port: 80
+
+#Apply:
+
+kubectl apply -f 10-web-route.yaml
+
+#Verify:
+
+kubectl get httproute -n gateway-demo
+
+#Detailed:
+
+kubectl describe httproute web-route -n gateway-demo
+
+#Look for:
+
+Accepted=True
+ResolvedRefs=True
+
+#STEP 13 — Create Path-Based HTTPRoute
+
+# Now we will use:
+
+Host: api.gateway.local
+
+Routing:
+
+/          → web-service
+
+/api       → api-service
+
+/health    → api-service
+
+#Create:
+
+vi 11-api-route.yaml
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+
+metadata:
+  name: api-route
+  namespace: gateway-demo
+
+spec:
+
+  parentRefs:
+    - name: eg-demo-gateway
+
+  hostnames:
+    - "api.gateway.local"
+
+  rules:
+
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+
+      backendRefs:
+        - name: api-service
+          port: 80
+
+
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /health
+
+      backendRefs:
+        - name: api-service
+          port: 80
+
+
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+
+      backendRefs:
+        - name: web-service
+          port: 80
+
+#Apply:
+
+kubectl apply -f 11-api-route.yaml
+
+#Verify:
+
+kubectl get httproute -n gateway-demo
+
+#STEP 14 — Verify All Resources
+kubectl get all -n gateway-demo
+kubectl get gateway -n gateway-demo
+kubectl get httproute -n gateway-demo
+
+#Expected structure:
+
+# Gateway
+# └── eg-demo-gateway
+
+# HTTPRoutes
+# ├── web-route
+# └── api-route
+
+# Services
+# ├── web-service
+# └── api-service
+
+# Deployments
+# ├── web
+# └── api
+
+# STEP 15 — Find the Envoy Service
+
+# Envoy Gateway creates Envoy infrastructure for your Gateway. The official documentation demonstrates discovering the generated Envoy Service using labels rather than assuming a fixed service name.
+
+# Run:
+
+kubectl get svc -n envoy-gateway-system \
+  -l gateway.envoyproxy.io/owning-gateway-namespace=gateway-demo,\
+gateway.envoyproxy.io/owning-gateway-name=eg-demo-gateway
+
+# Store the service name:
+
+export ENVOY_SERVICE=$(kubectl get svc \
+  -n envoy-gateway-system \
+  -l gateway.envoyproxy.io/owning-gateway-namespace=gateway-demo,\
+gateway.envoyproxy.io/owning-gateway-name=eg-demo-gateway \
+  -o jsonpath='{.items[0].metadata.name}')
+
+# Check:
+
+echo $ENVOY_SERVICE
+
+Example:
+
+envoy-default-eg-demo-gateway-xxxxx
+
+#STEP 16 — Port Forward the Gateway
+
+# For the first hands-on lab, port forwarding is simpler and more reliable than assuming NodePort or cloud LoadBalancer configuration.
+
+kubectl port-forward \
+  -n envoy-gateway-system \
+  service/$ENVOY_SERVICE \
+  8080:80
+
+# Keep this terminal open.
+
+# You should see:
+
+Forwarding from 127.0.0.1:8080 -> 80
+
+#STEP 17 — Test Host-Based Routing
+
+# Open another terminal.
+
+# Test the Web application:
+
+curl \
+  -H "Host: web.gateway.local" \
+  http://localhost:8080/
+
+# Expected:
+
+# Gateway API Host Routing Works!
+
+# Application: WEB
+# STEP 18 — Test Path-Based Routing
+
+Test /
+curl \
+  -H "Host: api.gateway.local" \
+  http://localhost:8080/
+
+# Expected:
+
+# Application: WEB
+Test /api
+curl \
+  -H "Host: api.gateway.local" \
+  http://localhost:8080/api
+
+# Expected:
+
+# Gateway API Path Routing Works!
+
+Application: API
+Test /health
+curl \
+  -H "Host: api.gateway.local" \
+  http://localhost:8080/health
+
+# Expected:
+
+# Gateway API Path Routing Works!
+
+Application: API
+
+#STEP 19 — Create an Automated Test Script
+vi test.sh
+#!/bin/bash
+
+set -e
+
+PORT=8080
+
+echo "======================================"
+echo "Gateway API Testing"
+echo "======================================"
+
+echo ""
+echo "1. Testing Host Routing"
+echo "Host: web.gateway.local"
+echo ""
+
+curl -s \
+  -H "Host: web.gateway.local" \
+  http://localhost:$PORT/
+
+echo ""
+echo "======================================"
+
+echo ""
+echo "2. Testing Default Path Routing"
+echo "Host: api.gateway.local"
+echo "Path: /"
+echo ""
+
+curl -s \
+  -H "Host: api.gateway.local" \
+  http://localhost:$PORT/
+
+echo ""
+echo "======================================"
+
+echo ""
+echo "3. Testing API Path Routing"
+echo "Host: api.gateway.local"
+echo "Path: /api"
+echo ""
+
+curl -s \
+  -H "Host: api.gateway.local" \
+  http://localhost:$PORT/api
+
+echo ""
+echo "======================================"
+
+echo ""
+echo "4. Testing Health Path Routing"
+echo "Host: api.gateway.local"
+echo "Path: /health"
+echo ""
+
+curl -s \
+  -H "Host: api.gateway.local" \
+  http://localhost:$PORT/health
+
+echo ""
+echo "======================================"
+echo "All tests completed"
+echo "======================================"
+
+# Make executable:
+
+chmod +x test.sh
+
+# Run:
+
+./test.sh
+# Complete Deployment Order
+
+# Use this exact order:
+
+# Gateway API CRDs
+
+kubectl apply --server-side \
+  -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/standard-install.yaml
+# Install Envoy Gateway
+
+helm install eg \
+  oci://docker.io/envoyproxy/gateway-helm \
+  --version v1.9.0 \
+  -n envoy-gateway-system \
+  --create-namespace
+kubectl wait \
+  --timeout=5m \
+  -n envoy-gateway-system \
+  deployment/envoy-gateway \
+  --for=condition=Available
+# GatewayClass
+
+kubectl apply -f 01-gatewayclass.yaml
+# Namespace
+
+kubectl apply -f 02-namespace.yaml
+# Applications
+
+kubectl apply -f 03-web-configmap.yaml
+
+kubectl apply -f 04-web-deployment.yaml
+
+kubectl apply -f 05-web-service.yaml
+
+kubectl apply -f 06-api-configmap.yaml
+
+kubectl apply -f 07-api-deployment.yaml
+
+kubectl apply -f 08-api-service.yaml
+
+Wait:
+
+kubectl rollout status deployment/web -n gateway-demo
+
+kubectl rollout status deployment/api -n gateway-demo
+# Gateway
+
+kubectl apply -f 09-gateway.yaml
+# HTTPRoutes
+
+kubectl apply -f 10-web-route.yaml
+
+kubectl apply -f 11-api-route.yaml
+
+#Final Verification Commands
+GatewayClass
+kubectl get gatewayclass
+Gateway
+kubectl get gateway -n gateway-demo
+HTTPRoutes
+kubectl get httproute -n gateway-demo
+All Application Resources
+kubectl get all -n gateway-demo
+Check Gateway Status
+kubectl describe gateway eg-demo-gateway -n gateway-demo
+Check Route Status
+kubectl describe httproute web-route -n gateway-demo
+kubectl describe httproute api-route -n gateway-demo
+
+The most important status conditions to understand are:
+
+GatewayClass
+└── Accepted=True
+
+Gateway
+└── Programmed=True
+
+HTTPRoute
+├── Accepted=True
+└── ResolvedRefs=True
+What You Have Practiced
+                    Gateway API
+                         |
+                         v
+                   GatewayClass
+                         |
+                         v
+                      Gateway
+                         |
+                +--------+--------+
+                |                 |
+                v                 v
+           HTTPRoute          HTTPRoute
+           Host-based         Path-based
+                |                 |
+                v                 v
+           web-service       api-service
+                |                 |
+                v                 v
+              Pods              Pods
+
+This is a better foundation than combining HTTP, HTTPS, NodePort, TLS, and Ingress comparison into the first lab.
