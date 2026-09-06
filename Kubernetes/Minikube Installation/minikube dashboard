@@ -1,0 +1,183 @@
+(* Keep dashboard running on EC2
+
+On your EC2 terminal, run: *)
+
+minikube dashboard
+
+(* You already did this and got:
+
+* Enabling dashboard ...
+* Verifying dashboard health ...
+* Launching proxy ...
+* Verifying proxy health ...
+* Opening http://127.0.0.1:41949/...
+
+Do not close this terminal. *)
+
+
+(* Open another terminal on your local Windows machine
+
+Do not run the next command inside the EC2 SSH session.
+
+Open:
+
+Windows PowerShell *)
+
+(* Then create an SSH tunnel.
+
+You need your EC2 public IP/DNS and your .pem key.
+
+For example: *)
+ssh -i "C:\Users\YourName\Downloads\my-key.pem" -L 41949:127.0.0.1:41949 ubuntu@YOUR_EC2_PUBLIC_IP
+
+(* Enter your key/passphrase if requested.
+
+Once connected, keep this terminal open. *)
+(* Open Chrome on your laptop
+
+Now open: *)
+
+http://127.0.0.1:41949
+
+(* or: *)
+
+http://localhost:41949
+
+(* You should now see the Kubernetes Dashboard. *)
+
+
+(* Open another EC2 terminal and run: *)
+
+minikube addons enable metrics-server
+(* 
+Expected:
+
+* The 'metrics-server' addon is enabled
+
+Then check: *)
+
+kubectl get pods -n kube-system
+
+(* Eventually you should see:
+
+metrics-server-xxxxxxxxxx-xxxxx   1/1   Running
+
+Then: *)
+
+kubectl top nodes
+
+(* (* You should get something like:
+
+NAME       CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)
+minikube   200m         5%      1500Mi           20%
+
+The exact numbers will be different on your machine. *)
+
+For the SSH tunnel method, you do NOT need to open port 41949 in the EC2 Security Group.
+
+You only need SSH access:
+
+Inbound
+  TCP
+  22
+  Your IP
+
+You do not need:
+
+41949
+
+open publicly.
+
+That's one of the major advantages of SSH tunneling.
+
+
+Git includes its own ssh.exe. We just need to call that executable directly.
+
+1. Check Git's SSH
+
+Run this in your current PowerShell:
+
+& "C:\Program Files\Git\usr\bin\ssh.exe" -V
+
+You should get something like:
+
+OpenSSH_9.xp1, OpenSSL ...
+2. Create the SSH tunnel
+
+Now run:
+
+& "C:\Program Files\Git\usr\bin\ssh.exe" -i ".\k8s-north.pem" -L 37673:127.0.0.1:37673 ubuntu@3.81.136.250
+3. First connection
+
+If you see:
+
+The authenticity of host '3.81.136.250' can't be established.
+Are you sure you want to continue connecting (yes/no/[fingerprint])?
+
+Type:
+
+yes
+
+Then you should get something like:
+
+Welcome to Ubuntu ...
+ubuntu@ip-172-31-44-24:~$
+
+Don't close this PowerShell window.
+
+The tunnel is now active.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
