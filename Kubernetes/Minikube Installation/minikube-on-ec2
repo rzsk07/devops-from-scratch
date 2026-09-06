@@ -1,0 +1,572 @@
+Ubuntu 24.04 Linux
+                           │
+                           │
+                    ┌──────▼──────┐
+                    │    Docker   │
+                    │   Engine    │
+                    └──────┬──────┘
+                           │
+                           │ Docker Driver
+                           ▼
+                ┌─────────────────────┐
+                │      Minikube       │
+                │                     │
+                │  Kubernetes Cluster │
+                │                     │
+                │  ┌───────────────┐  │
+                │  │ Control Plane │  │
+                │  │               │  │
+                │  │ API Server    │  │
+                │  │ Scheduler     │  │
+                │  │ Controller    │  │
+                │  │ etcd          │  │
+                │  └───────┬───────┘  │
+                │          │          │
+                │  ┌───────▼───────┐  │
+                │  │ Worker Node   │  │
+                │  │               │  │
+                │  │ kubelet       │  │
+                │  │ containerd    │  │
+                │  │ Pods          │  │
+                │  └───────────────┘  │
+                └─────────────────────┘
+                           ▲
+                           │
+                      kubectl
+                           │
+                    Your Terminal
+
+=========================================================================================================================================
+
+cat /etc/os-release
+sudo apt update
+sudo apt install -y curl wget git apt-transport-https ca-certificates gnupg
+
+# Remove conflicting Docker packages
+# If this is a fresh machine, many of these may not exist. That's fine.
+sudo apt remove -y docker.io docker-compose docker-compose-v2 docker-doc docker-buildx podman-docker containerd runc
+sudo apt update
+
+# Install prerequisites:
+sudo apt install -y ca-certificates curl
+
+# Create keyring:
+sudo install -m 0755 -d /etc/apt/keyrings
+
+# Download Docker GPG key:
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+-o /etc/apt/keyrings/docker.asc
+
+# Set permission:
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Now add repository:
+sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+# Update:
+sudo apt update
+
+# Install Docker
+
+# Run:
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Installation can take a few minutes.
+
+# Check:
+docker --version
+
+# Check service:
+sudo systemctl status docker
+
+# Enable Docker at boot
+# Run:
+sudo systemctl enable docker
+sudo systemctl enable containerd
+
+# Docker normally starts automatically on Ubuntu after installation
+
+# Test Docker
+sudo docker run hello-world
+
+# Allow your user to use Docker without sudo
+# We don't want to use sudo every time.
+
+# Run:
+sudo usermod -aG docker $USER
+
+# Then:
+newgrp docker
+
+----------------------------------------------------------------------------------------
+
+# Install kubectl
+# Now we need Kubernetes CLI.
+# Architecture:
+# kubectl
+   │
+   │ Kubernetes API
+   ▼
+# Kubernetes API Server
+
+## Official binary installation
+
+# For x86-64:
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+# Make it executable/install it:
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+# Check:
+kubectl version --client
+
+# Example:
+# Client Version: v1.3x.x
+# Kustomize Version: v5.x.x
+
+# Verify kubectl location
+which kubectl
+
+# Expected: /usr/local/bin/kubectl
+
+# Check:
+kubectl version --client --output=yaml
+
+## At this point:
+
+# Ubuntu
+   │
+   ├── Docker ✅
+   │
+   └── kubectl ✅
+
+# But Kubernetes itself isn't running yet.
+
+# Install Minikube
+
+# Now the main component. Official Minikube provides a stable Linux AMD64 binary installation command.
+
+# For x86-64:
+curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+
+# Install:
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+# Remove downloaded binary:
+rm minikube-linux-amd64
+
+# Verify:
+minikube version
+
+# Configure Docker as Minikube driver
+
+# Run:
+minikube config set driver docker
+
+# Expected: These changes will take effect upon a minikube delete and then a minikube start
+
+# Verify:
+minikube config get driver
+
+# Minikube specifically supports:
+minikube start --driver=docker
+
+# and Docker can be made the default driver using minikube config set driver docker
+
+# Start Kubernetes cluster
+
+# Now the exciting part.
+
+# Run:
+minikube start --driver=docker
+
+(* You may see output similar to:
+
+😄  minikube v1.3x.x on Ubuntu 24.04
+✨  Using the docker driver based on user configuration
+📌  Using Docker driver with root privileges
+👍  Starting "minikube" primary control-plane node in "minikube" cluster
+🔥  Pulling base image ...
+💾  Downloading Kubernetes v1.3x.x preload ...
+    > preloaded-images-k8s-v...tar.lz4: ...
+    > registry.k8s.io/pause:...
+    > registry.k8s.io/kube-controller-manager:...
+    > registry.k8s.io/kube-scheduler:...
+    > registry.k8s.io/kube-apiserver:...
+    > registry.k8s.io/etcd:...
+🚜  Creating docker container (CPUs=2, Memory=2200MB, Disk=...)
+🐳  Preparing Kubernetes v1.3x.x on Docker ...
+🔗  Configuring bridge CNI ...
+🔎  Verifying Kubernetes components...
+🌟  Enabled addons: storage-provisioner, default-storageclass
+🏄  Done! kubectl is now configured to use "minikube" cluster and "default" namespace *)
+
+
+
+(* Check Minikube status
+
+Run: *)
+
+minikube status
+
+(* Expected:
+
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+kubeconfig: Configured
+
+This is one of the most important verification commands.
+
+You want: *)
+
+(* host       → Running
+kubelet    → Running
+apiserver  → Running
+kubeconfig → Configured *)
+
+(* STEP 17 — Check Kubernetes nodes
+
+Run: *)
+
+kubectl get nodes
+
+(* Expected:
+
+NAME       STATUS   ROLES           AGE   VERSION
+minikube   Ready    control-plane   2m    v1.3x.x
+
+The important part:
+
+STATUS
+-------
+Ready
+
+Congratulations.
+
+You now have a working Kubernetes cluster.
+
+STEP 18 — Understand what just happened
+
+When you executed: *)
+
+minikube start
+
+(* Minikube created a Kubernetes environment inside Docker.
+
+Conceptually:
+
+Ubuntu Host
+│
+├── Docker Engine
+│
+│   └── minikube container
+│       │
+│       ├── kube-apiserver
+│       ├── etcd
+│       ├── kube-scheduler
+│       ├── kube-controller-manager
+│       │
+│       ├── kubelet
+│       ├── container runtime
+│       │
+│       └── Kubernetes Pods
+│
+└── kubectl
+        │
+        ▼
+   API Server
+
+This is why you don't need to install kubeadm, kubelet, and kubectl separately to create this Minikube lab cluster.
+
+STEP 19 — Check all Kubernetes system pods
+
+Run: *)
+
+kubectl get pods -A
+
+(* You may see:
+
+NAMESPACE     NAME                                READY   STATUS    RESTARTS   AGE
+kube-system   coredns-xxxxxxxxxx-xxxxx            1/1     Running   0          3m
+kube-system   etcd-minikube                       1/1     Running   0          3m
+kube-system   kube-apiserver-minikube             1/1     Running   0          3m
+kube-system   kube-controller-manager-minikube    1/1     Running   0          3m
+kube-system   kube-proxy-xxxxx                    1/1     Running   0          3m
+kube-system   kube-scheduler-minikube             1/1     Running   0          3m
+kube-system   storage-provisioner *)
+
+(* Check namespaces *)
+kubectl get namespaces
+
+(* Expected:
+
+NAME              STATUS   AGE
+default           Active   5m
+kube-node-lease   Active   5m
+kube-public       Active   5m
+kube-system       Active   5m
+STEP 21 — Check cluster information
+
+Run: *)
+
+kubectl cluster-info
+
+(* Example:
+
+Kubernetes control plane is running at https://192.168.x.x:8443
+CoreDNS is running at https://192.168.x.x:8443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+Depending on Minikube/Kubernetes version, output can differ.
+
+STEP 22 — Check API server *)
+kubectl get --raw='/readyz?verbose'
+
+(* You'll see multiple checks such as:
+
+[+]ping ok
+[+]log ok
+[+]etcd ok
+[+]poststarthook/start-kube-apiserver-admission-initializer ok
+...
+readyz check passed
+
+This confirms the API server is responding.
+
+STEP 23 — Check Minikube Docker container
+
+Now let's connect the Kubernetes layer with Docker. *)
+
+(* Run: *)
+
+docker ps
+
+(* You should see a container related to Minikube.
+
+Example:
+
+CONTAINER ID   IMAGE                    COMMAND       STATUS
+xxxxxxxxxxxx   gcr.io/k8s-minikube/...  ...           Up ...
+
+You can also run: *)
+
+(* docker ps --filter name=minikube
+STEP 24 — Deploy your first application
+
+Let's deploy NGINX.
+
+Run: *)
+
+kubectl create deployment nginx --image=nginx
+
+(* Expected:
+
+deployment.apps/nginx created
+
+Check: *)
+
+kubectl get deployments
+
+(* Output:
+
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+nginx   0/1     1            0           5s
+
+Wait a few seconds and run again: *)
+
+kubectl get deployments
+
+(* Eventually:
+
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+nginx   1/1     1            1           30s
+STEP 25 — Check Pod *)
+kubectl get pods
+
+(* Example:
+
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-xxxxxxxxxx-xxxxx   1/1     Running   0          40s
+
+Important:
+
+READY
+1/1 *)
+
+(* and:
+
+STATUS
+Running
+STEP 26 — Understand Deployment → ReplicaSet → Pod
+
+Run: *)
+
+kubectl get all
+
+(* Expose application using Service
+
+Currently:
+
+User
+  X
+  │
+  │ no Service
+  X
+Pod
+
+Create a Service: *)
+
+kubectl expose deployment nginx \
+  --type=NodePort \
+  --port=80
+
+(* Expected:
+
+service/nginx exposed
+
+Check: *)
+
+kubectl get svc
+
+(* Example:
+
+NAME    TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
+nginx   NodePort   10.96.xx.xx    <none>        80:30xxx/TCP   10s
+
+The important part:
+
+80:30xxx/TCP
+
+means:
+
+Service port = 80
+NodePort      = 30xxx
+STEP 28 — Access NGINX
+
+The easiest Minikube method: *)
+
+(* minikube service nginx
+
+This may open the browser automatically.
+
+Or:
+
+minikube service nginx --url
+
+Example:
+
+http://192.168.xx.xx:30xxx
+
+Then: *)
+
+curl $(minikube service nginx --url)
+
+(* Expected response starts with:
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+...
+STEP 29 — See the complete traffic flow
+
+Now you have:
+
+Browser
+   │
+   ▼
+Minikube Node
+   │
+   ▼
+NodePort
+   │
+   ▼
+Kubernetes Service
+   │
+   ▼
+Service Selector
+   │
+   ▼
+Pod
+   │
+   ▼
+NGINX Container
+   │
+   ▼
+HTTP Response
+
+Internally:
+
+Deployment
+     │
+     ▼
+ReplicaSet
+     │
+     ▼
+Pod
+     │
+     └── nginx container
+STEP 30 — Inspect Service
+
+Run: *)
+
+kubectl describe service nginx
+
+(* You'll see something similar to:
+
+Name:              nginx
+Namespace:         default
+Labels:            app=nginx
+Type:              NodePort
+IP:                10.96.xx.xx
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+NodePort:          <unset>  30xxx/TCP
+Endpoints:         10.244.x.x:80
+
+The critical concept:
+
+Service
+   │
+   │ selector
+   ▼
+Pod IP
+STEP 31 — Check Endpoints *)
+kubectl get endpoints nginx
+
+(* Example:
+
+NAME    ENDPOINTS            AGE
+nginx   10.244.0.3:80       2m
+
+Modern Kubernetes may also show/use EndpointSlices: *)
+
+kubectl get endpointslices
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
