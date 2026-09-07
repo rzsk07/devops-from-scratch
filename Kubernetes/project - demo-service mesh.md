@@ -1,18 +1,53 @@
 Real-World Project
 
-                     User
-                      │
-                      ▼
-               product-page
-                      │
-                      ▼
-                recommendation
-                      │
-                      ▼
-                  reviews
-                  /      \
-                 /        \
-            reviews-v1   reviews-v2
+                          USER
+                           │
+                           ▼
+                  Istio Ingress Gateway
+                           │
+                           ▼
+                     frontend Service
+                           │
+                    ┌──────┴──────┐
+                    ▼             ▼
+              frontend Pod    Envoy Proxy
+                    │
+                    │
+                    ▼
+              reviews Service
+                    │
+             ┌──────┴──────┐
+             ▼             ▼
+        reviews-v1      reviews-v2
+        App + Envoy     App + Envoy
+             │             │
+             └──────┬──────┘
+                    │
+                    ▼
+             backend Service
+                    │
+                    ▼
+             backend Pod
+                + Envoy
+Istio architecture:
+
+              CONTROL PLANE
+              ┌─────────────┐
+              │   istiod    │
+              └──────┬──────┘
+                     │
+          xDS configuration
+                     │
+      ┌──────────────┼──────────────┐
+      ▼              ▼              ▼
+   Envoy           Envoy          Envoy
+ frontend        reviews-v1     reviews-v2
+      │              │              │
+      └──────────────┴──────────────┘
+                  DATA PLANE
+
+
+===========================================================================================
 
 kubectl get nodes
 
