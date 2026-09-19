@@ -1,0 +1,17 @@
+𝟏𝟓 𝐀𝐝𝐯𝐚𝐧𝐜𝐞𝐝 𝐓𝐞𝐫𝐫𝐚𝐟𝐨𝐫𝐦 𝐈𝐧𝐭𝐞𝐫𝐯𝐢𝐞𝐰 𝐐𝐮𝐞𝐬𝐭𝐢𝐨𝐧𝐬
+
+1. How does Terraform handle state locking, and what happens if the lock is lost mid-apply?
+2. Explain a real scenario where terraform plan shows no change, but apply still modifies resources.
+3. How do you safely manage Terraform state across multiple teams and environments?
+4. What problems arise when multiple modules reference the same resource, and how do you design around it?
+5. Difference between count and for_each - and why switching between them can destroy resources.
+6. How do you handle secrets in Terraform without exposing them in state files?
+7. Explain drift detection. How do you detect and fix infra drift without downtime?
+8. What happens internally when you delete a resource manually from the cloud but not from Terraform?
+9. How do you design Terraform modules to be reusable without becoming tightly coupled?
+10. Explain depends_on vs implicit dependency - when does Terraform get it wrong?
+11. How do workspaces actually work, and why are they dangerous in large organizations?
+12. How do you refactor a Terraform codebase without destroying production resources?
+13. What are partial applies, and how do you recover safely from a failed apply?
+14. How do provider version mismatches break production, and how do you prevent it?
+15. Describe a real incident caused by Terraform state corruption. How did you fix it?
