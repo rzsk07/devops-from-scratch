@@ -1,0 +1,31 @@
+Here are 15 questions I’ve seen asked in DevOps interviews 👇
+
+1.Explain the complete CI/CD pipeline flow from code commit to production deployment.
+
+2. Your deployment succeeded, but users are getting 500 errors. How would you troubleshoot it?
+
+3. A Kubernetes pod is continuously restarting. How would you identify the root cause?
+
+4. How does Kubernetes DNS work, and what happens when one service tries to communicate with another?
+
+5. What is the difference between Rolling, Blue-Green and Canary deployments? When would you use each?
+
+6. During a Canary deployment, error rates suddenly increase. How would you prevent the issue from reaching 100% of users?
+
+7. Terraform says the infrastructure has changed manually. How would you identify and handle the drift?
+
+8. Your Docker image is 2 GB and takes several minutes to deploy. How would you optimize it?
+
+9. CPU and memory look normal, but application response time has increased significantly. What would you investigate?
+
+10. How would you configure a default data source so newly created Grafana panels automatically use it?
+
+11. How would you configure an L7 load balancer for multiple microservices?
+
+12.  How would you securely manage database passwords, API keys and other secrets in a Kubernetes environment?
+
+13.  Production is down at 2 AM. What is your approach from detection → investigation → mitigation → RCA?
+
+14. Your application suddenly receives 10x normal traffic. How would you design the infrastructure to handle it?
+
+15. You have automated everything, but deployments are still failing frequently. What would you investigate?
