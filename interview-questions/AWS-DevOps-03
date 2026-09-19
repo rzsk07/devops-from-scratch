@@ -1,0 +1,21 @@
+set of DevOps interview questions from various sources, which I will be sharing regularly, If you are preparing for the interviews, 
+especially in AWS DevOps, feel free to take a look.
+
+1. How do find vulnerabilities in a Docker image using Trivy, and how do you fix them ?
+2. How do you secure AWS credentials in a CICD pipeline ?
+3. What are the best practices for securing Kubernetes workloads ?
+4. How do you secure Terraform state files ?
+5. How do you automate security scanning in CI/CD pipeline ?
+6. How do you prevent secrets from being exposed in Git repositories ?
+7. What is Infrastructure as Code (IaC) and what security measures should be taken ?
+8. How do you secure APIs in a microservices architecture ? 
+9. How do you secure a CI/CD pipeline from supply chain attacks?
+10. How do monitor and analyze security logs in AWS ? 
+11. How do you manage API security in Kubernetes ?
+12. How do you prevent privilege escalation in a Kubernetes cluster ?
+13. How do you perform security hardening with Ansible ?
+14. How does service-mesh improve communication between microservices.
+15. How is service-mesh helping in deployments.
+16. How does service-mesh handles multi cloud practitioner multi cluster environments.
+17. What is a process of configuring service-mesh in Kubernetes env.
+18. How does service-mesh differs from traditional load balancing and traditional networking.
