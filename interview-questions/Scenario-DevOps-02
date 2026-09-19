@@ -1,0 +1,46 @@
+𝐐𝐮𝐞𝐬𝐭𝐢𝐨𝐧:
+“A critical production release is scheduled tomorrow. During final validation, you discover a configuration issue that may impact live customer transactions. Business still wants to go live. What will you do as a DevOps Engineer?”
+
+This question checks one thing:
+Can you make the right technical decision under production pressure?
+
+● 𝐒𝐢𝐭𝐮𝐚𝐭𝐢𝐨𝐧
+In one of my previous projects, we had a major production release scheduled the next day. During final validation in staging, we identified a configuration mismatch in the deployment pipeline that could potentially affect transaction processing for a subset of users.
+
+Timelines were tight. Business was pushing hard to release.
+
+● 𝐓𝐚𝐬𝐤
+As a DevOps Engineer, my responsibility was to:
+• Assess the production risk
+• Validate the technical severity
+• Provide clear release options
+• Ensure system stability and rollback readiness
+
+● 𝐀𝐜𝐭𝐢𝐨𝐧
+𝟏. 𝐈𝐦𝐦𝐞𝐝𝐢𝐚𝐭𝐞 𝐈𝐦𝐩𝐚𝐜𝐭 𝐀𝐧𝐚𝐥𝐲𝐬𝐢𝐬
+• Identified affected services and dependent components
+• Checked logs, monitoring dashboards, and test results
+• Assessed whether issue was data-impacting or availability-impacting
+
+𝟐. 𝐓𝐞𝐜𝐡𝐧𝐢𝐜𝐚𝐥 𝐕𝐚𝐥𝐢𝐝𝐚𝐭𝐢𝐨𝐧
+• Reproduced the issue in staging
+• Coordinated with developers and QA to confirm scope
+• Verified if configuration fix could be safely applied before release
+
+𝟑. 𝐏𝐫𝐞𝐩𝐚𝐫𝐞𝐝 𝐂𝐨𝐧𝐭𝐫𝐨𝐥𝐥𝐞𝐝 𝐎𝐩𝐭𝐢𝐨𝐧𝐬 𝐟𝐨𝐫 𝐋𝐞𝐚𝐝𝐞𝐫𝐬𝐡𝐢𝐩
+I presented two structured choices:
+• Proceed with release + mitigation plan + enhanced monitoring
+• Delay release until configuration fix is tested and validated
+
+Additionally, I ensured:
+• Rollback strategy was tested
+• Backup snapshots were ready
+• Deployment was automated and reversible
+All risks were documented formally.
+
+● 𝐑𝐞𝐬𝐮𝐥𝐭
+Leadership decided to go for a controlled release with:
+• Temporary mitigation
+• Real-time monitoring alerts enabled
+• War-room support during release window
+• Permanent fix planned in next patch release
