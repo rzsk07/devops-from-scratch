@@ -1,0 +1,22 @@
+Here are 20 real DevOps questions asked in interviews 
+
+1. How does Kubernetes decide which node to schedule a pod on?
+2. What happens internally when you run kubectl apply?
+3. How does Kubernetes service discovery work?
+4. What is the difference between readiness and liveness probes internally?
+5. How does Horizontal Pod Autoscaler (HPA) make scaling decisions?
+6. What happens internally when you run docker run?
+7. How does Docker layer caching work? 
+8. How does Terraform dependency graph (DAG) work internally?
+9. How does Terraform handle state locking and consistency?
+10. What happens internally in a CI/CD pipeline from commit → deploy?
+11. How does a pipeline handle parallel jobs and dependencies?
+12. How does AWS Load Balancer route traffic?
+13. What happens internally when you hit a CloudFront URL?
+14. How does DNS resolution work step by step?
+15. How does Git merge and rebase differ internally?
+16. How does Kubernetes handle pod failures and self-healing?
+17. What happens during a rolling deployment in Kubernetes?
+18. How do logs, metrics, and traces work together in observability?
+19. What happens when your system goes down - how do you approach it?
+20. What are the most common production mistakes in DevOps setups?
