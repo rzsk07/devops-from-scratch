@@ -1,0 +1,46 @@
+ How does a request flow from a domain name to a Pod using DNS and Kubernetes Services?
+In production, how would you move workloads from an *unhealthy node to a healthy node*?
+Difference between *Taint and Cordon*?
+* How do you restart a Kubernetes Deployment?
+* How do you perform a Kubernetes application health check?
+* What are the different types of *probes*?
+* Which probe acts first — *Startup, Readiness, or Liveness*?
+* What are the common reasons for a *CrashLoopBackOff* error?
+
+ 🔹 Terraform
+
+* What is a *Terraform state file*?
+* How does *state locking* work?
+* What is *Terraform drift*?
+* What is `terraform import` and when is it used?
+* Why is *S3 commonly used as a Terraform backend*?
+* What are the advantages of using a remote backend?
+
+🔹 Prometheus & Grafana
+
+* Do you have hands-on experience with *Prometheus and Grafana*?
+* How do you collect *application-level metrics*?
+* How do you collect *application-level logs*?
+* What data source have you used with Grafana?
+* How does Prometheus collect metrics?
+
+🔹 Helm
+
+* What is the *`range` function in Helm*?
+* What is the difference between *values and parameters in Helm*?
+* How do you pass values during Helm deployment?
+
+🔹 AWS / S3 / IAM
+
+* How would you give access to a *specific file in an S3 bucket* to a user from another organization/account?
+* Difference between *S3 Bucket Policy, IAM Policy, and Pre-signed URL*?
+* How would you provide temporary access to a specific S3 object?
+
+🔹 Docker
+
+* What command is used to list running containers?
+* What command is used to list all containers?
+* What are the common reasons for containers continuously restarting?
+
+💡 *My key takeaway:*
+The interview was focused more on **real-world scenarios and troubleshooting** rather than just theoretical definitions.
